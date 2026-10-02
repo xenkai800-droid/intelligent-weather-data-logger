@@ -1,0 +1,26 @@
+database:
+  path: data/weather.db
+
+api:
+  open_meteo_timeout: 15
+
+weather:
+  default_city: Bengaluru
+  default_latitude: 12.9716
+  default_longitude: 77.5946
+
+historical_data:
+  start_date: "2024-01-01"
+  end_date: "2025-12-31"
+
+ml:
+  model_path: ml/comfort_model.joblib
+  encoder_path: ml/comfort_model_encoder.joblib
+
+scheduler:
+  enabled: true
+  interval_minutes: 60
+
+logging:
+  level: INFO
+  file: logs/weather_app.log
