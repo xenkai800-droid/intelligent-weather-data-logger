@@ -1,61 +1,29 @@
-FR-01: The system shall retrieve live weather data from Open-Meteo.
+# Requirements and Current Coverage
 
-FR-02: The system shall collect temperature, humidity, pressure, wind speed, precipitation, and timestamp data.
+This project is a local Python/Streamlit application. Install runtime dependencies with `python -m pip install -r requirements.txt`; install test tooling with `python -m pip install -r requirements-dev.txt`.
 
-FR-02A: The system shall support location-based weather retrieval using latitude and longitude coordinates.
+## Runtime requirements
 
-FR-03: The system shall store weather records in a SQLite database.
+- Python 3.11 or newer, with dependencies pinned in `requirements.txt`.
+- Network access for requests to Open-Meteo.
+- A local filesystem for SQLite, logs, and model artifacts.
+- The checked-in Joblib model and encoder files for dashboard predictions.
 
-FR-04: The system shall maintain historical weather data.
+## Implemented behavior
 
-FR-05: The system shall clean and preprocess collected weather data.
+| Capability | Current implementation |
+| --- | --- |
+| Current weather | On-demand dashboard request for six predefined cities. |
+| Historical weather | Separate daily archive importer; 2024-01-01 to 2025-12-31 constants. |
+| Persistence | SQLite location and weather-observation inserts; dashboard initializes schema. |
+| Preprocessing | API field validation and conversion; archive humidity and pressure use fixed defaults. No general cleaning module is implemented. |
+| Comfort and risk | Deterministic rule-based engines. |
+| Anomaly | Absolute difference from the pipeline's fixed 28°C baseline; flag threshold >10°C. |
+| Recommendations | Deterministic text selected by risk label and temperature. |
+| ML | Random Forest classification trained from comfort-rule labels; dashboard inference from saved artifacts. |
+| Scheduling | Separate foreground process; immediate first collection, then configured interval. |
+| Visualization | Streamlit metrics and Plotly historical charts sourced from SQLite. |
 
-FR-06: The system shall display live weather metrics through a Streamlit dashboard.
+## Test coverage
 
-FR-07: The system shall visualize historical weather trends.
-
-FR-08: The system shall calculate a weather comfort score.
-
-FR-09: The system shall classify comfort categories.
-
-FR-10: The system shall detect abnormal weather conditions.
-
-FR-11: The system shall compare current conditions against historical averages.
-
-FR-12: The system shall assess heat stress risk.
-
-FR-13: The system shall assess dehydration risk.
-
-FR-14: The system shall assess outdoor activity risk.
-
-FR-15: The system shall generate hydration recommendations.
-
-FR-16: The system shall generate clothing recommendations.
-
-FR-17: The system shall generate outdoor activity recommendations.
-
-FR-18: The system shall train a machine learning model.
-
-FR-19: The system shall predict weather comfort categories.
-
-FR-20: The system shall display model predictions within the dashboard.
-
-NFR-01: The system shall use only free and open-source technologies.
-
-NFR-02: The system shall run on Windows.
-
-NFR-03: The system shall operate on a laptop with 16 GB RAM.
-
-NFR-04: The system shall store data locally using SQLite.
-
-NFR-05: The dashboard shall remain responsive during normal operation.
-
-NFR-06: The system shall be modular and maintainable.
-
-NFR-07: The codebase shall follow professional project structure.
-
-NFR-08: The system shall support future feature expansion.
-
-NFR-09: The project shall be documented adequately for academic evaluation.
-
-NFR-10: The project shall be suitable for GitHub portfolio presentation.
+The test suite covers the four analytics engines: comfort, anomaly, risk, and recommendation behavior including input validation. It does not currently cover integration or UI behavior. See [README.md](README.md) for commands and known limitations.

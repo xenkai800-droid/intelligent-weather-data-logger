@@ -1,155 +1,29 @@
-# Data Pipeline Design
+# Data Pipeline
 
-## Pipeline Overview
+There are separate dashboard and persistence workflows; fetching a dashboard value does not imply a database write.
 
-Open-Meteo API
-↓
-Weather Client
-↓
-Data Validation
-↓
-SQLite Database
-↓
-Data Cleaning
-↓
-Comfort Analysis Engine
-↓
-Anomaly Detection Engine
-↓
-Environmental Risk Engine
-↓
-Recommendation Engine
-↓
-Machine Learning Engine
-↓
-Streamlit Dashboard
+## Current weather in the dashboard
 
----
+1. The user selects one of six fixed Indian cities.
+2. `WeatherClient` requests current temperature, relative humidity, mean sea-level pressure, wind speed, and precipitation from Open-Meteo.
+3. It validates coordinate ranges, required response fields, and converts measurements to numeric values.
+4. Streamlit displays the values, runs comfort/risk/recommendation rules, and predicts a comfort category with the saved model.
+5. The response is not inserted into SQLite; anomaly analysis is not run in this path.
 
-Stage 1: Data Collection
+## Historical import
 
-Input:
-None
+1. `scripts/import_historical_data.py` requests daily mean temperature, precipitation sum, and maximum wind speed for six hard-coded cities from 2024-01-01 through 2025-12-31.
+2. The client validates coordinates, date syntax/order, required response fields, and aligned daily arrays.
+3. It converts each daily value to a normalized record. Humidity (50%) and pressure (1013 hPa) are fixed defaults because they are not requested from the archive endpoint.
+4. The importer creates or reuses a location and skips observations already stored for that location and timestamp.
+5. Run `scripts/populate_training_data.py` separately to calculate derived fields.
 
-Process:
-Retrieve weather data from Open-Meteo.
+## Scheduled current collection
 
-Output:
-Raw weather data.
+`python -m scheduler.weather_scheduler` uses the configured default city and coordinates. It collects once immediately, inserts a non-duplicate observation, runs enrichment, then repeats at `scheduler.interval_minutes`. The process runs independently of Streamlit and remains active until stopped. The scheduler does not check the `scheduler.enabled` setting.
 
----
+## Enrichment
 
-Stage 2: Validation
+The enrichment command selects stored observations whose `comfort_score` is NULL. It calculates comfort score/category, risk labels, recommendation text, and temperature deviation from the fixed 28°C reference. The anomaly flag is set when the absolute difference is strictly greater than 10°C. These derived values are written back to the observation row.
 
-Input:
-Raw weather data.
-
-Process:
-Validate API response and weather values.
-
-Output:
-Validated weather data.
-
----
-
-Stage 3: Storage
-
-Input:
-Validated weather data.
-
-Process:
-Store records in SQLite.
-
-Output:
-Historical weather dataset.
-
----
-
-Stage 4: Data Cleaning
-
-Input:
-Stored weather data.
-
-Process:
-Clean and standardize data.
-
-Output:
-Clean weather dataset.
-
----
-
-Stage 5: Comfort Analysis
-
-Input:
-Clean weather dataset.
-
-Process:
-Calculate comfort score and category.
-
-Output:
-Comfort metrics.
-
----
-
-Stage 6: Anomaly Detection
-
-Input:
-Weather observations.
-
-Process:
-Detect abnormal conditions.
-
-Output:
-Anomaly indicators.
-
----
-
-Stage 7: Environmental Risk Assessment
-
-Input:
-Weather observations.
-
-Process:
-Assess environmental risks.
-
-Output:
-Risk indicators.
-
----
-
-Stage 8: Recommendation Generation
-
-Input:
-Comfort metrics and risk indicators.
-
-Process:
-Generate recommendations.
-
-Output:
-Actionable recommendations.
-
----
-
-Stage 9: Machine Learning
-
-Input:
-Processed weather features.
-
-Process:
-Generate comfort predictions.
-
-Output:
-Predicted comfort category and confidence score.
-
----
-
-Stage 10: Dashboard Presentation
-
-Input:
-All analytical outputs.
-
-Process:
-Visualize and present insights.
-
-Output:
-User-facing weather intelligence dashboard.
+The dashboard's historical charts read temperature, comfort score, comfort category, and heat-stress risk from SQLite. A fresh database has no chart observations until data is imported or collected and enriched.
